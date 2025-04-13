@@ -183,3 +183,29 @@ def replay_sequence(seq):
         if st.done or st.is_terminal():
             break
     return st
+
+
+    # A random game simulation to demonstrate the game logic.
+if __name__ == "__main__":
+    
+    # Create a new game instance.
+    game = Game2048()
+    print("Initial game state:")
+    print(game)
+    
+    # Mapping move numbers to names for better readability.
+    move_names = {UP: "UP", RIGHT: "RIGHT", DOWN: "DOWN", LEFT: "LEFT"}
+
+    # Play the game by applying random legal moves until the game is over.
+    move_count = 0
+    while not game.is_terminal() and game.get_legal_moves():
+        legal = game.get_legal_moves()
+        move = random.choice(legal)
+        move_count += 1
+        print(f"\nMove {move_count}: {move_names[move]}")
+        game.move(move)
+        print(game)
+    
+    print("\nFinal game state:")
+    print(game)
+
