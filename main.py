@@ -142,6 +142,107 @@ def replay_sequence(seq):
             break
     return st
 
+##############################################################################
+#                            CLASSIC MCTS and UCT                              
+##############################################################################
+class Node:
+    def __init__(self, state, parent=None, move=None):
+        self.state = state
+        self.parent = parent
+        self.move = move
+
+        self.children = {}
+        self.visits = 0
+        self.value = 0
+        self.untried_moves = state.get_legal_moves()
+
+    def is_fully_expanded(self):
+        return len(self.untried_moves) == 0
+    
+    def best_child(self):
+        return max(self.children.values(), key=lambda c: c.value / c.visits if c.visits > 0 else float('-inf'))
+    
+    def best_child_uct(self, C):
+        return max(self.children.values(), key= lambda c: c.uct_score(C))
+
+    def expand(self):
+        move = self.untried_moves.pop()
+        next_state = self.state.clone()
+        next_state.move(move)
+
+        child_node = Node(next_state, parent=self, move=move)
+        self.children[move] = child_node
+        return child_node
+
+    def update(self, score):
+        self.value += score
+        self.visits += 1
+
+    def uct_score(self, C):
+        if self.visits == 0:
+            return float('inf')
+        
+        mean = self.value / self.visits
+        exploration = C * math.sqrt(math.log(self.parent.visits) / self.visits)
+
+        return mean + exploration
+
+def random_rollout(state, max_depth=50):
+    rollout_state = state.clone()
+    for i in range(max_depth):
+        if rollout_state.is_terminal():
+            break
+        legal_moves = rollout_state.get_legal_moves()
+        if not legal_moves:
+            break
+        move = random.choice(legal_moves)
+        rollout_state.move(move)
+    return rollout_state.get_score()
+
+
+    return rollout_state.get_score()
+
+def mcts_search(root_state, n=100, use_uct=False, C=math.sqrt(2)):
+    root = Node(root_state)
+
+    for _ in range(n):
+        # Selection
+        node = root
+        while node.is_fully_expanded() and node.children:
+            node = node.best_child_uct(C) if use_uct else node.best_child()
+
+        # Expansion
+        if not node.is_fully_expanded():
+            node = node.expand()
+
+        # Simulation
+        score = random_rollout(node.state, max_depth=1)
+    
+        # Backprop
+        while node is not None:
+            node.update(score)
+            node = node.parent
+
+    if root.children:
+        best_move = max(root.children.items(), key=lambda item: item[1].value / item[1].visits)[0]
+        return best_move
+    else:
+        return None
+    
+
+def evaluate(mcts, label, num_games=1):
+    scores = []
+    for i in range(num_games):
+        game = Game2048()
+        while not game.done and game.get_legal_moves():
+            move = mcts(game)
+            if move is None:
+                break
+            game.move(move)
+        scores.append(game.get_score())
+        print(f"Game {i+1} final state:")
+        print(game)
+    print(f'{label} - Mean Score: {np.mean(scores)}, Max Score: {np.max(scores)}')
 
 ##############################################################################
 #                    NMCS IMPLEMENTATION
@@ -396,7 +497,13 @@ if __name__ == "__main__":
     # Set seeds for reproducibility.
     random.seed(30)
     np.random.seed(30)
-    verbose = True
+    verbose = False
+
+    print("======= Playing Game with Classic MCTS =======")
+    evaluate(lambda g: mcts_search(g, 20, use_uct=False), "Classic MCTS")
+
+    print("======= Playing Game with UCT =======")
+    evaluate(lambda g: mcts_search(g, 20, use_uct=True), "UCT MCTS")
 
     print("======= Playing Game with NMCS =======")
     # game_nmcs, moves_nmcs = play_game_with_nmcs(simulation_depth=2, nmcs_level=0, verbose=verbose)
