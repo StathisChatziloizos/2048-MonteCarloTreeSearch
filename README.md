@@ -42,3 +42,8 @@ python NMCS_and_NRPA.py
 ```
 
 The NRPA and NMCS modules include a verbose flag. When enabled (by setting verbose=True) it helps in visually tracking the progress of the search.
+
+
+## Authors
+Alejandro Jorba \
+Efstathios Chatziloizos
